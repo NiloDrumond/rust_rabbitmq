@@ -1,0 +1,11 @@
+
+#!/bin/bash
+
+count=40
+bytes=$1
+while [[ $count -gt "0" ]];
+do
+  count=$((count - 1))
+  ./target/debug/publisher "$bytes" &
+done
+
