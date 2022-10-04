@@ -1,3 +1,5 @@
+use std::{env, process};
+
 use amiquip::{Connection, ConsumerOptions, QueueDeclareOptions, Result};
 use chrono::offset;
 
@@ -6,8 +8,26 @@ fn parse_data(raw: &[u8]) -> [u8; 8] {
 }
 
 fn main() -> Result<()> {
+    let mut args = env::args();
+    args.next();
+
+    let prefetch_count: u16 = match args.next() {
+        Some(arg) => match arg.parse() {
+            Ok(num) => num,
+            Err(e) => {
+                eprintln!("PC inválido: {}", e);
+                process::exit(1);
+            }
+        },
+        None => {
+            eprintln!("PC não recebido");
+            process::exit(1);
+        }
+    };
+
     let mut connection = Connection::insecure_open("amqp://guest:guest@localhost:5672")?;
     let channel = connection.open_channel(None)?;
+    channel.qos(0, prefetch_count, false)?;
     let queue = channel.queue_declare("test", QueueDeclareOptions::default())?;
     let consumer = queue.consume(ConsumerOptions::default())?;
 
@@ -25,7 +45,7 @@ fn main() -> Result<()> {
 
                 consumer.ack(delivery)?;
 
-                if i + 1 == 40 * 10_000 {
+                if i + 1 == 10_000 {
                     let avg: i64 = durations.iter().sum::<i64>() / durations.len() as i64;
                     println!("Average Time Diff: {avg:?}");
                     break;
@@ -40,4 +60,3 @@ fn main() -> Result<()> {
 
     connection.close()
 }
-
