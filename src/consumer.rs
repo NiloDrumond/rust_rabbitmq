@@ -37,13 +37,12 @@ fn main() -> Result<()> {
         match message {
             amiquip::ConsumerMessage::Delivery(delivery) => {
                 let data = parse_data(&delivery.body[..8]);
+                consumer.ack(delivery)?;
                 let send_time = i64::from_be_bytes(data);
                 let now = offset::Utc::now().timestamp_millis();
                 let time_diff = now - send_time;
 
                 durations.push(time_diff);
-
-                consumer.ack(delivery)?;
 
                 if i + 1 == 10_000 {
                     let avg: i64 = durations.iter().sum::<i64>() / durations.len() as i64;
